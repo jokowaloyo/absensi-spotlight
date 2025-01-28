@@ -19,10 +19,15 @@ const Index = () => {
   const [selfieImage, setSelfieImage] = useState<string>('');
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isClockingIn, setIsClockingIn] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState<string>('');
   const { toast } = useToast();
 
   const handleCapture = (image: string) => {
     setSelfieImage(image);
+  };
+
+  const handleLocationUpdate = (address: string) => {
+    setCurrentLocation(address);
   };
 
   const handleAttendance = () => {
@@ -35,11 +40,20 @@ const Index = () => {
       return;
     }
 
+    if (!currentLocation) {
+      toast({
+        title: "Error",
+        description: "Waiting for location information",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newRecord: AttendanceRecord = {
       id: Date.now(),
       type: isClockingIn ? 'in' : 'out',
       timestamp: new Date(),
-      location: "Current Location", // This would be replaced with actual location
+      location: currentLocation,
       image: selfieImage,
     };
 
@@ -67,7 +81,7 @@ const Index = () => {
           <div className="grid grid-cols-1 gap-6">
             <div className="flex justify-between items-center">
               <Clock />
-              <Location />
+              <Location onLocationUpdate={handleLocationUpdate} />
             </div>
 
             <div className="border-t border-b border-gray-200 py-6">

@@ -7,7 +7,11 @@ interface LocationData {
   address?: string;
 }
 
-const Location = () => {
+interface LocationProps {
+  onLocationUpdate?: (address: string) => void;
+}
+
+const Location = ({ onLocationUpdate }: LocationProps) => {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string>('');
 
@@ -24,10 +28,12 @@ const Location = () => {
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
             );
             const data = await response.json();
+            const address = data.display_name;
             setLocation(prev => ({
               ...prev!,
-              address: data.display_name
+              address
             }));
+            onLocationUpdate?.(address);
           } catch (err) {
             console.error("Error fetching address:", err);
           }
@@ -40,7 +46,7 @@ const Location = () => {
     } else {
       setError("Geolocation is not supported by your browser");
     }
-  }, []);
+  }, [onLocationUpdate]);
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
