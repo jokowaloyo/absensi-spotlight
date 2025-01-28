@@ -7,6 +7,7 @@ interface AttendanceRecord {
   timestamp: Date;
   location: string;
   image: string;
+  isLate?: boolean;
 }
 
 interface AttendanceHistoryProps {
@@ -29,11 +30,18 @@ const AttendanceHistory = ({ records }: AttendanceHistoryProps) => {
             />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  record.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {record.type === 'in' ? 'Clock In' : 'Clock Out'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    record.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {record.type === 'in' ? 'Absensi Masuk' : 'Absensi Keluar'}
+                  </span>
+                  {record.isLate && (
+                    <span className="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                      {record.type === 'in' ? 'Terlambat' : 'Terlalu Awal'}
+                    </span>
+                  )}
+                </div>
                 <time className="text-sm text-gray-500">
                   {new Intl.DateTimeFormat('id-ID', {
                     timeZone: 'Asia/Jakarta',

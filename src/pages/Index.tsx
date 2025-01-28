@@ -5,7 +5,7 @@ import Clock from '@/components/Clock';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface AttendanceRecord {
   id: number;
@@ -13,6 +13,7 @@ interface AttendanceRecord {
   timestamp: Date;
   location: string;
   image: string;
+  isLate?: boolean;
 }
 
 const Index = () => {
@@ -30,11 +31,25 @@ const Index = () => {
     setCurrentLocation(address);
   };
 
+  const checkAttendanceTime = (type: 'in' | 'out', currentTime: Date): boolean => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const timeInMinutes = hours * 60 + minutes;
+
+    if (type === 'in') {
+      // Check if after 08:00
+      return timeInMinutes > (8 * 60);
+    } else {
+      // Check if before 17:00
+      return timeInMinutes < (17 * 60);
+    }
+  };
+
   const handleAttendance = () => {
     if (!selfieImage) {
       toast({
         title: "Error",
-        description: "Please take a selfie first",
+        description: "Mohon ambil foto selfie terlebih dahulu",
         variant: "destructive",
       });
       return;
@@ -43,27 +58,36 @@ const Index = () => {
     if (!currentLocation) {
       toast({
         title: "Error",
-        description: "Waiting for location information",
+        description: "Menunggu informasi lokasi",
         variant: "destructive",
       });
       return;
     }
 
+    const currentTime = new Date();
+    const isLate = checkAttendanceTime(isClockingIn ? 'in' : 'out', currentTime);
+
     const newRecord: AttendanceRecord = {
       id: Date.now(),
       type: isClockingIn ? 'in' : 'out',
-      timestamp: new Date(),
+      timestamp: currentTime,
       location: currentLocation,
       image: selfieImage,
+      isLate
     };
 
     setRecords([newRecord, ...records]);
     setSelfieImage('');
     setIsClockingIn(!isClockingIn);
 
+    const attendanceStatus = isClockingIn ? 'Absensi Masuk' : 'Absensi Keluar';
+    const lateMessage = isLate ? 
+      (isClockingIn ? ' - Terlambat (Setelah jam 08:00 WIB)' : ' - Terlalu Awal (Sebelum jam 17:00 WIB)') 
+      : '';
+
     toast({
-      title: `Successfully ${isClockingIn ? 'Clocked In' : 'Clocked Out'}`,
-      description: `Attendance recorded at ${new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`,
+      title: `${attendanceStatus} Berhasil${lateMessage}`,
+      description: `Absensi tercatat pada ${new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`,
     });
   };
 
@@ -73,7 +97,7 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary">GG Suspension</h1>
-          <p className="mt-2 text-foreground/80">Attendance System</p>
+          <p className="mt-2 text-foreground/80">Sistem Absensi</p>
         </div>
 
         {/* Main Content */}
@@ -92,7 +116,7 @@ const Index = () => {
                 onClick={() => setIsClockingIn(true)}
               >
                 <LogIn className="w-4 h-4 mr-2" />
-                Clock In
+                Absensi Masuk
               </Button>
               <Button
                 variant={!isClockingIn ? "default" : "secondary"}
@@ -100,7 +124,7 @@ const Index = () => {
                 onClick={() => setIsClockingIn(false)}
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                Clock Out
+                Absensi Keluar
               </Button>
             </div>
 
@@ -124,12 +148,12 @@ const Index = () => {
               {isClockingIn ? (
                 <>
                   <LogIn className="w-4 h-4 mr-2" />
-                  Clock In
+                  Absensi Masuk
                 </>
               ) : (
                 <>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Clock Out
+                  Absensi Keluar
                 </>
               )}
             </Button>
@@ -138,7 +162,7 @@ const Index = () => {
 
         {/* Attendance History */}
         <div className="bg-card rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-primary">Attendance History</h2>
+          <h2 className="text-xl font-semibold mb-4 text-primary">Riwayat Absensi</h2>
           <AttendanceHistory records={records} />
         </div>
       </div>
