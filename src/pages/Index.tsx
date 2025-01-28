@@ -68,30 +68,50 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">GG Suspension</h1>
-          <p className="mt-2 text-gray-600">Attendance System</p>
+          <h1 className="text-3xl font-bold text-primary">GG Suspension</h1>
+          <p className="mt-2 text-foreground/80">Attendance System</p>
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div className="bg-card rounded-lg shadow-lg p-6 mb-8">
           <div className="grid grid-cols-1 gap-6">
             <div className="flex justify-between items-center">
               <Clock />
               <Location onLocationUpdate={handleLocationUpdate} />
             </div>
 
-            <div className="border-t border-b border-gray-200 py-6">
+            {/* Clock In/Out Menu */}
+            <div className="flex gap-4 justify-center mb-6">
+              <Button
+                variant={isClockingIn ? "default" : "secondary"}
+                className={`w-40 ${isClockingIn ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => setIsClockingIn(true)}
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Clock In
+              </Button>
+              <Button
+                variant={!isClockingIn ? "default" : "secondary"}
+                className={`w-40 ${!isClockingIn ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => setIsClockingIn(false)}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Clock Out
+              </Button>
+            </div>
+
+            <div className="border-t border-b border-gray-600 py-6">
               <Camera onCapture={handleCapture} />
               {selfieImage && (
                 <div className="mt-4">
                   <img
                     src={selfieImage}
                     alt="Captured selfie"
-                    className="w-48 h-48 mx-auto rounded-lg object-cover"
+                    className="w-48 h-48 mx-auto rounded-lg object-cover border-2 border-primary"
                   />
                 </div>
               )}
@@ -99,9 +119,7 @@ const Index = () => {
 
             <Button
               onClick={handleAttendance}
-              className={`w-full ${
-                isClockingIn ? 'bg-primary hover:bg-primary/90' : 'bg-red-500 hover:bg-red-600'
-              }`}
+              className="w-full"
             >
               {isClockingIn ? (
                 <>
@@ -119,8 +137,8 @@ const Index = () => {
         </div>
 
         {/* Attendance History */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Attendance History</h2>
+        <div className="bg-card rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-primary">Attendance History</h2>
           <AttendanceHistory records={records} />
         </div>
       </div>
