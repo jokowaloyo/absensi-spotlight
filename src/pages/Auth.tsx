@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -17,33 +17,56 @@ const Auth = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log("Attempting authentication...", { isSignUp, email }); // Debug log
     
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        console.log("Attempting signup..."); // Debug log
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
         });
+        
+        console.log("Signup response:", { data, error }); // Debug log
+        
         if (error) throw error;
+        
         toast({
           title: "Success",
           description: "Registration successful! Please check your email to verify your account.",
         });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        console.log("Attempting login..."); // Debug log
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
+        
+        console.log("Login response:", { data, error }); // Debug log
+        
+        if (error) {
+          if (error.message === "Invalid login credentials") {
+            throw new Error("Invalid email or password. Please try again.");
+          }
+          throw error;
+        }
+        
+        toast({
+          title: "Success",
+          description: "Successfully logged in!",
+        });
         navigate("/");
       }
     } catch (error: any) {
+      console.error("Authentication error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "An error occurred during authentication",
       });
-      console.error("Authentication error:", error);
     } finally {
       setLoading(false);
     }
@@ -54,6 +77,11 @@ const Auth = () => {
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>{isSignUp ? "Sign Up" : "Login"}</CardTitle>
+          <CardDescription>
+            {isSignUp 
+              ? "Create a new account to get started" 
+              : "Welcome back! Please enter your credentials"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
@@ -64,6 +92,7 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
@@ -73,16 +102,26 @@ const Auth = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="w-full"
+                minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading || !email || password.length < 6}
+            >
               {loading ? "Loading..." : isSignUp ? "Sign Up" : "Login"}
             </Button>
             <Button
               type="button"
               variant="ghost"
               className="w-full"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setEmail("");
+                setPassword("");
+              }}
             >
               {isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
             </Button>
