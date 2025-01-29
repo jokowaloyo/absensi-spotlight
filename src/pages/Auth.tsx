@@ -36,7 +36,7 @@ const Auth = () => {
         
         toast({
           title: "Success",
-          description: "Registration successful! Please check your email to verify your account.",
+          description: "Registration successful! Please check your email to verify your account. You'll need to verify your email before you can log in.",
         });
       } else {
         console.log("Attempting login..."); // Debug log
@@ -48,6 +48,11 @@ const Auth = () => {
         console.log("Login response:", { data, error }); // Debug log
         
         if (error) {
+          if (error.message === "Email not confirmed") {
+            throw new Error(
+              "Please verify your email address before logging in. Check your inbox for a verification email."
+            );
+          }
           if (error.message === "Invalid login credentials") {
             throw new Error("Invalid email or password. Please try again.");
           }
@@ -62,11 +67,21 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "An error occurred during authentication",
-      });
+      
+      // Show a more detailed toast for email verification errors
+      if (error.message.includes("verify your email")) {
+        toast({
+          variant: "destructive",
+          title: "Email Verification Required",
+          description: error.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "An error occurred during authentication",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +94,7 @@ const Auth = () => {
           <CardTitle>{isSignUp ? "Sign Up" : "Login"}</CardTitle>
           <CardDescription>
             {isSignUp 
-              ? "Create a new account to get started" 
+              ? "Create a new account to get started. You'll need to verify your email before logging in." 
               : "Welcome back! Please enter your credentials"}
           </CardDescription>
         </CardHeader>
