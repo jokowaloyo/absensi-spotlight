@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AttendanceRecord {
-  id: number;
+  id: string;  // Changed from number to string since Supabase uses UUID
   type: 'in' | 'out';
   timestamp: Date;
   location: string;
