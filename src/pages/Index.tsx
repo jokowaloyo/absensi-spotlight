@@ -20,25 +20,44 @@ const Index = () => {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate('/auth');
+          return;
+        }
+
+        console.log('Fetching profile for user:', user.id);
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Changed from .single() to .maybeSingle()
+        
+        console.log('Profile fetch result:', { profile, error });
         
         if (profile) {
           setFullName(profile.full_name);
+        } else {
+          console.log('No profile found for user');
+          // Profile doesn't exist yet, that's okay - user will need to set their name
+          toast({
+            title: "Welcome!",
+            description: "Please enter your full name to get started.",
+          });
         }
-      } else {
-        // If no user is logged in, redirect to login
-        navigate('/auth');
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile. Please try again.",
+          variant: "destructive",
+        });
       }
     };
     
     loadProfile();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleCapture = (image: string) => {
     setSelfieImage(image);
@@ -70,39 +89,44 @@ const Index = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "Anda harus login terlebih dahulu",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
+
+      console.log('Saving profile for user:', user.id);
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: fullName.trim(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('Error saving name:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Sukses",
+        description: "Nama berhasil disimpan",
+      });
+    } catch (error) {
+      console.error('Error in handleNameSubmit:', error);
       toast({
         title: "Error",
-        description: "Anda harus login terlebih dahulu",
+        description: "Gagal menyimpan nama. Silakan coba lagi.",
         variant: "destructive",
       });
-      navigate('/auth');
-      return;
     }
-
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        user_id: user.id,
-        full_name: fullName.trim(),
-        updated_at: new Date().toISOString(),
-      });
-
-    if (error) {
-      console.error('Error saving name:', error);
-      toast({
-        title: "Error",
-        description: "Gagal menyimpan nama",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Sukses",
-      description: "Nama berhasil disimpan",
-    });
   };
 
   const handleAttendance = async () => {
