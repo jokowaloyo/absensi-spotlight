@@ -14,6 +14,7 @@ const Index = () => {
   const [isClockingIn, setIsClockingIn] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<string>('');
   const [fullName, setFullName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,11 +31,14 @@ const Index = () => {
         if (profile) {
           setFullName(profile.full_name);
         }
+      } else {
+        // If no user is logged in, redirect to login
+        navigate('/auth');
       }
     };
     
     loadProfile();
-  }, []);
+  }, [navigate]);
 
   const handleCapture = (image: string) => {
     setSelfieImage(image);
@@ -67,7 +71,15 @@ const Index = () => {
     }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Anda harus login terlebih dahulu",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
 
     const { error } = await supabase
       .from('profiles')
@@ -78,6 +90,7 @@ const Index = () => {
       });
 
     if (error) {
+      console.error('Error saving name:', error);
       toast({
         title: "Error",
         description: "Gagal menyimpan nama",
@@ -93,42 +106,51 @@ const Index = () => {
   };
 
   const handleAttendance = async () => {
-    if (!fullName.trim()) {
-      toast({
-        title: "Error",
-        description: "Mohon masukkan nama lengkap terlebih dahulu",
-        variant: "destructive",
-      });
-      return;
-    }
+    try {
+      setIsSubmitting(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "Anda harus login terlebih dahulu",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
 
-    if (!selfieImage) {
-      toast({
-        title: "Error",
-        description: "Mohon ambil foto selfie terlebih dahulu",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (!fullName.trim()) {
+        toast({
+          title: "Error",
+          description: "Mohon masukkan nama lengkap terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (!currentLocation) {
-      toast({
-        title: "Error",
-        description: "Menunggu informasi lokasi",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (!selfieImage) {
+        toast({
+          title: "Error",
+          description: "Mohon ambil foto selfie terlebih dahulu",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const currentTime = new Date();
-    const isLate = checkAttendanceTime(isClockingIn ? 'in' : 'out', currentTime);
+      if (!currentLocation) {
+        toast({
+          title: "Error",
+          description: "Menunggu informasi lokasi",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+      const currentTime = new Date();
+      const isLate = checkAttendanceTime(isClockingIn ? 'in' : 'out', currentTime);
 
-    const { error } = await supabase
-      .from('attendance_records')
-      .insert({
+      console.log('Submitting attendance:', {
         user_id: user.id,
         type: isClockingIn ? 'in' : 'out',
         timestamp: currentTime.toISOString(),
@@ -137,27 +159,44 @@ const Index = () => {
         is_late: isLate
       });
 
-    if (error) {
+      const { error } = await supabase
+        .from('attendance_records')
+        .insert({
+          user_id: user.id,
+          type: isClockingIn ? 'in' : 'out',
+          timestamp: currentTime.toISOString(),
+          location: currentLocation,
+          image_url: selfieImage,
+          is_late: isLate
+        });
+
+      if (error) {
+        console.error('Error submitting attendance:', error);
+        throw error;
+      }
+
+      setSelfieImage('');
+      setIsClockingIn(!isClockingIn);
+
+      const attendanceStatus = isClockingIn ? 'Absensi Masuk' : 'Absensi Keluar';
+      const lateMessage = isLate ? 
+        (isClockingIn ? ' - Terlambat (Setelah jam 08:00 WIB)' : ' - Terlalu Awal (Sebelum jam 17:00 WIB)') 
+        : '';
+
+      toast({
+        title: `${attendanceStatus} Berhasil${lateMessage}`,
+        description: `Absensi tercatat pada ${new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`,
+      });
+    } catch (error) {
+      console.error('Error in handleAttendance:', error);
       toast({
         title: "Error",
-        description: "Gagal mencatat absensi",
+        description: "Gagal mencatat absensi. Silakan coba lagi.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setSelfieImage('');
-    setIsClockingIn(!isClockingIn);
-
-    const attendanceStatus = isClockingIn ? 'Absensi Masuk' : 'Absensi Keluar';
-    const lateMessage = isLate ? 
-      (isClockingIn ? ' - Terlambat (Setelah jam 08:00 WIB)' : ' - Terlalu Awal (Sebelum jam 17:00 WIB)') 
-      : '';
-
-    toast({
-      title: `${attendanceStatus} Berhasil${lateMessage}`,
-      description: `Absensi tercatat pada ${new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`,
-    });
   };
 
   return (
@@ -226,17 +265,18 @@ const Index = () => {
 
             <Button
               onClick={handleAttendance}
+              disabled={isSubmitting}
               className="w-full"
             >
               {isClockingIn ? (
                 <>
                   <LogIn className="w-4 h-4 mr-2" />
-                  Absensi Masuk
+                  {isSubmitting ? 'Memproses...' : 'Absensi Masuk'}
                 </>
               ) : (
                 <>
                   <LogOut className="w-4 h-4 mr-2" />
-                  Absensi Keluar
+                  {isSubmitting ? 'Memproses...' : 'Absensi Keluar'}
                 </>
               )}
             </Button>
