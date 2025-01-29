@@ -1,27 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Camera from '@/components/Camera';
 import Location from '@/components/Location';
 import Clock from '@/components/Clock';
-import AttendanceHistory from '@/components/AttendanceHistory';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LogIn, LogOut, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface AttendanceRecord {
-  id: number;
-  type: 'in' | 'out';
-  timestamp: Date;
-  location: string;
-  image: string;
-  isLate?: boolean;
-}
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [selfieImage, setSelfieImage] = useState<string>('');
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [isClockingIn, setIsClockingIn] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<string>('');
+  const [fullName, setFullName] = useState('');
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile) {
+          setFullName(profile.full_name);
+        }
+      }
+    };
+    
+    loadProfile();
+  }, []);
 
   const handleCapture = (image: string) => {
     setSelfieImage(image);
@@ -37,15 +50,58 @@ const Index = () => {
     const timeInMinutes = hours * 60 + minutes;
 
     if (type === 'in') {
-      // Check if after 08:00
       return timeInMinutes > (8 * 60);
     } else {
-      // Check if before 17:00
       return timeInMinutes < (17 * 60);
     }
   };
 
-  const handleAttendance = () => {
+  const handleNameSubmit = async () => {
+    if (!fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Mohon masukkan nama lengkap",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: user.id,
+        full_name: fullName.trim(),
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan nama",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Sukses",
+      description: "Nama berhasil disimpan",
+    });
+  };
+
+  const handleAttendance = async () => {
+    if (!fullName.trim()) {
+      toast({
+        title: "Error",
+        description: "Mohon masukkan nama lengkap terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selfieImage) {
       toast({
         title: "Error",
@@ -67,16 +123,29 @@ const Index = () => {
     const currentTime = new Date();
     const isLate = checkAttendanceTime(isClockingIn ? 'in' : 'out', currentTime);
 
-    const newRecord: AttendanceRecord = {
-      id: Date.now(),
-      type: isClockingIn ? 'in' : 'out',
-      timestamp: currentTime,
-      location: currentLocation,
-      image: selfieImage,
-      isLate
-    };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    setRecords([newRecord, ...records]);
+    const { error } = await supabase
+      .from('attendance_records')
+      .insert({
+        user_id: user.id,
+        type: isClockingIn ? 'in' : 'out',
+        timestamp: currentTime.toISOString(),
+        location: currentLocation,
+        image_url: selfieImage,
+        is_late: isLate
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Gagal mencatat absensi",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSelfieImage('');
     setIsClockingIn(!isClockingIn);
 
@@ -108,6 +177,20 @@ const Index = () => {
               <Location onLocationUpdate={handleLocationUpdate} />
             </div>
 
+            {/* Name Input */}
+            <div className="flex gap-4">
+              <Input
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleNameSubmit}>
+                Simpan Nama
+              </Button>
+            </div>
+
             {/* Clock In/Out Menu */}
             <div className="flex gap-4 justify-center mb-6">
               <Button
@@ -128,7 +211,7 @@ const Index = () => {
               </Button>
             </div>
 
-            <div className="border-t border-b border-gray-600 py-6">
+            <div className="border-t border-b border-border py-6">
               <Camera onCapture={handleCapture} />
               {selfieImage && (
                 <div className="mt-4">
@@ -157,13 +240,17 @@ const Index = () => {
                 </>
               )}
             </Button>
-          </div>
-        </div>
 
-        {/* Attendance History */}
-        <div className="bg-card rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4 text-primary">Riwayat Absensi</h2>
-          <AttendanceHistory records={records} />
+            {/* History Button */}
+            <Button
+              variant="outline"
+              onClick={() => navigate('/history')}
+              className="w-full"
+            >
+              <History className="w-4 h-4 mr-2" />
+              Lihat Riwayat Absensi
+            </Button>
+          </div>
         </div>
       </div>
     </div>
