@@ -27,6 +27,7 @@ export type Database = {
       attendance_records: {
         Row: {
           created_at: string
+          id: string | null
           image_url: string
           is_late: boolean | null
           location: string
@@ -37,6 +38,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          id?: string | null
           image_url: string
           is_late?: boolean | null
           location: string
@@ -47,6 +49,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          id?: string | null
           image_url?: string
           is_late?: boolean | null
           location?: string

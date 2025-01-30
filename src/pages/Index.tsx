@@ -176,6 +176,7 @@ const Index = () => {
 
       console.log('Submitting attendance:', {
         user_id: user.id,
+        nama: fullName.trim(),
         type: isClockingIn ? 'in' : 'out',
         timestamp: currentTime.toISOString(),
         location: currentLocation,
@@ -187,6 +188,7 @@ const Index = () => {
         .from('attendance_records')
         .insert({
           user_id: user.id,
+          nama: fullName.trim(),
           type: isClockingIn ? 'in' : 'out',
           timestamp: currentTime.toISOString(),
           location: currentLocation,

@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AttendanceRecord {
-  id: string;  // Changed from number to string since Supabase uses UUID
+  id: string | null;  // Updated to match Supabase schema
   type: 'in' | 'out';
   timestamp: Date;
   location: string;
@@ -20,7 +20,7 @@ const AttendanceHistory = ({ records }: AttendanceHistoryProps) => {
       <div className="space-y-4">
         {records.map((record) => (
           <div
-            key={record.id}
+            key={record.id || Math.random().toString()}
             className="flex items-start space-x-4 p-4 bg-white rounded-lg shadow"
           >
             <img
