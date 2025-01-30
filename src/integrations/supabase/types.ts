@@ -43,7 +43,7 @@ export type Database = {
           is_late?: boolean | null
           location: string
           nama: string
-          timestamp: string
+          timestamp?: string
           type: string
           user_id?: string | null
         }
