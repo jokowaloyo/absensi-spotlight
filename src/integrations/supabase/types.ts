@@ -27,30 +27,30 @@ export type Database = {
       attendance_records: {
         Row: {
           created_at: string
-          id: string
           image_url: string
           is_late: boolean | null
           location: string
+          nama: string
           timestamp: string
           type: string
           user_id: string | null
         }
         Insert: {
           created_at?: string
-          id?: string
           image_url: string
           is_late?: boolean | null
           location: string
-          timestamp?: string
+          nama: string
+          timestamp: string
           type: string
           user_id?: string | null
         }
         Update: {
           created_at?: string
-          id?: string
           image_url?: string
           is_late?: boolean | null
           location?: string
+          nama?: string
           timestamp?: string
           type?: string
           user_id?: string | null
