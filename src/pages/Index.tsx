@@ -23,6 +23,7 @@ const Index = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
+          console.log('No user found, redirecting to auth');
           navigate('/auth');
           return;
         }
@@ -32,7 +33,7 @@ const Index = () => {
           .from('profiles')
           .select('full_name')
           .eq('user_id', user.id)
-          .maybeSingle(); // Changed from .single() to .maybeSingle()
+          .maybeSingle();
         
         console.log('Profile fetch result:', { profile, error });
         
@@ -40,17 +41,16 @@ const Index = () => {
           setFullName(profile.full_name);
         } else {
           console.log('No profile found for user');
-          // Profile doesn't exist yet, that's okay - user will need to set their name
           toast({
-            title: "Welcome!",
-            description: "Please enter your full name to get started.",
+            title: "Selamat datang!",
+            description: "Silakan masukkan nama lengkap Anda untuk memulai.",
           });
         }
       } catch (error) {
         console.error('Error loading profile:', error);
         toast({
           title: "Error",
-          description: "Failed to load profile. Please try again.",
+          description: "Gagal memuat profil. Silakan coba lagi.",
           variant: "destructive",
         });
       }
@@ -174,7 +174,7 @@ const Index = () => {
       const currentTime = new Date();
       const isLate = checkAttendanceTime(isClockingIn ? 'in' : 'out', currentTime);
 
-      console.log('Submitting attendance:', {
+      console.log('Submitting attendance with data:', {
         user_id: user.id,
         nama: fullName.trim(),
         type: isClockingIn ? 'in' : 'out',
@@ -184,7 +184,7 @@ const Index = () => {
         is_late: isLate
       });
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('attendance_records')
         .insert({
           user_id: user.id,
@@ -194,12 +194,16 @@ const Index = () => {
           location: currentLocation,
           image_url: selfieImage,
           is_late: isLate
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error submitting attendance:', error);
         throw error;
       }
+
+      console.log('Attendance record created successfully:', data);
 
       setSelfieImage('');
       setIsClockingIn(!isClockingIn);
@@ -213,11 +217,11 @@ const Index = () => {
         title: `${attendanceStatus} Berhasil${lateMessage}`,
         description: `Absensi tercatat pada ${new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in handleAttendance:', error);
       toast({
-        title: "Error",
-        description: "Gagal mencatat absensi. Silakan coba lagi.",
+        title: "Gagal Mencatat Absensi",
+        description: error.message || "Terjadi kesalahan. Silakan coba lagi.",
         variant: "destructive",
       });
     } finally {
