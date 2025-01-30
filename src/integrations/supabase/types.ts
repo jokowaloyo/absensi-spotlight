@@ -60,6 +60,45 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_review: {
+        Row: {
+          created_at: string
+          foto_keluar: string | null
+          foto_masuk: string
+          id: string
+          jam_keluar: string | null
+          jam_masuk: string
+          lokasi_keluar: string | null
+          lokasi_masuk: string
+          nama: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          foto_keluar?: string | null
+          foto_masuk: string
+          id?: string
+          jam_keluar?: string | null
+          jam_masuk: string
+          lokasi_keluar?: string | null
+          lokasi_masuk: string
+          nama: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          foto_keluar?: string | null
+          foto_masuk?: string
+          id?: string
+          jam_keluar?: string | null
+          jam_masuk?: string
+          lokasi_keluar?: string | null
+          lokasi_masuk?: string
+          nama?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
